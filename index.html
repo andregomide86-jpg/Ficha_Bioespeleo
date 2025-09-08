@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subterrânea Pesquisas Ambientais</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4CAF50">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -344,10 +341,10 @@
                         </div>
                         <div class="form-group">
                             <label>Zonação (%)</label>
-                            <div class="options-group" style="flex-direction: column; gap: 10px; align-items: stretch;">
-                                <div class="option-item" style="justify-content: space-between;"><label for="zonacao_eufotica">Aufótica</label><input type="number" id="zonacao_eufotica" name="zonacao_eufotica" style="width: 80px;"></div>
-                                <div class="option-item" style="justify-content: space-between;"><label for="zonacao_disfotica">Disfótica</label><input type="number" id="zonacao_disfotica" name="zonacao_disfotica" style="width: 80px;"></div>
-                                <div class="option-item" style="justify-content: space-between;"><label for="zonacao_afotica">Afótica</label><input type="number" id="zonacao_afotica" name="zonacao_afotica" style="width: 80px;"></div>
+                            <div class="options-group" style="flex-direction: column; gap: 10px; align-items: flex-start;">
+                                <div class="option-item"><label for="zonacao_eufotica">Aufótica</label><input type="number" id="zonacao_eufotica" name="zonacao_eufotica" style="width: 80px;"></div>
+                                <div class="option-item"><label for="zonacao_disfotica">Disfótica</label><input type="number" id="zonacao_disfotica" name="zonacao_disfotica" style="width: 80px;"></div>
+                                <div class="option-item"><label for="zonacao_afotica">Afótica</label><input type="number" id="zonacao_afotica" name="zonacao_afotica" style="width: 80px;"></div>
                             </div>
                         </div>
                     </div>
@@ -671,7 +668,7 @@ function changeQuantity(btn, amount) {
 }
 
 // --- LÓGICA PARA GPS, FOTOS E EXPORTAÇÃO ---
-let photoCounters = {};
+let capturedPhotos = [];
 
 function getGPS() {
     if (navigator.geolocation) {
@@ -701,17 +698,13 @@ document.getElementById('photo-input').addEventListener('change', function(event
     const sanitizedCavidade = cavidadeBase.replace(/[^a-z0-9.-]/gi, '_');
     const formattedData = dataValue.replace(/-/g, '');
     const filenameBase = `${sanitizedCavidade}_${formattedData}`;
-
-    photoCounters[filenameBase] = photoCounters[filenameBase] || 1;
+    
+    let photoCounter = capturedPhotos.filter(p => p.name.startsWith(filenameBase)).length + 1;
 
     Array.from(files).forEach(file => {
-        const currentCount = photoCounters[filenameBase]++;
-        const filename = `${filenameBase}_(${currentCount}).jpg`;
+        const filename = `${filenameBase}_(${photoCounter++}).jpg`;
         
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(file);
-        link.download = filename;
-        link.click();
+        capturedPhotos.push({ name: filename, blob: file });
 
         const img = document.createElement('img');
         img.src = URL.createObjectURL(file);
@@ -730,7 +723,7 @@ function downloadFile(filename, content, mimeType) {
     document.body.removeChild(link);
 }
 
-document.getElementById('exportButton').addEventListener('click', function() {
+document.getElementById('exportButton').addEventListener('click', async function() {
     const form = document.getElementById('bioForm');
     const sanitize = (text) => (text || '').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     
@@ -743,9 +736,11 @@ document.getElementById('exportButton').addEventListener('click', function() {
         return;
     }
     
-    const baseFilename = `${cavidadeNomeSanitized}_${projetoNome}_${dataNome}`;
+    const baseFilename = `${cavidadeNomeSanitized}`;
+    const zip = new JSZip();
 
-    const generateTextFile = () => {
+    // --- GERAÇÃO DO ARQUIVO DE TEXTO (.HTML) ---
+    const generateTextFileContent = () => {
         const getValue = (id) => document.getElementById(id)?.value || '';
         const getSelectedText = (id) => {
             const select = document.getElementById(id);
@@ -796,14 +791,11 @@ document.getElementById('exportButton').addEventListener('click', function() {
         };
 
         let s1 = `A cavidade ${data.nomeCavidade || '[N/A]'} está localizada em área com declividade ${data.declividade || vazio} na ${data.posicaoVertente || '[N/A]'} vertente.`;
-        
         let s2 = `A vegetação de entorno é composta por espécies de porte ${formatList(data.vegetacao)}`;
         if (data.drenagem === 'Presença' && data.distanciaDrenagem) {
             s2 += ` e ela está a cerca de ${data.distanciaDrenagem} metros de distância de uma drenagem ativa.`;
         } else { s2 += `.`; }
-        
         let s3_4 = `A cavidade apresenta uma inclinação predominantemente ${data.inclinacaoPiso || vazio}, sendo seu piso composto por ${formatList(data.sedimentos, {'Argila/Silte': 'sedimentos argilo-arenosos', 'Seixo': 'seixos', 'Matacão': 'matacões'})}.`;
-        
         let umidadeTxt = data.umidade === 'Presença' ? 'úmida' : (data.umidade === 'Ausência' ? 'seca' : vazio);
         let hidroTxt = (data.hidrologia.length === 0 || data.hidrologia.some(h => h.toLowerCase() === 'ausente')) ? 'não foram observados processos hidrológicos ativos' : `foram observados processos hidrológicos como ${formatList(data.hidrologia)}`;
         let s5_6 = `A cavidade se encontrava ${umidadeTxt} e ${hidroTxt}.`;
@@ -835,10 +827,11 @@ document.getElementById('exportButton').addEventListener('click', function() {
         const fullText = [s1, s2, s3_4, s5_6, s7, s8, s9, s10, s11].join(' ');
         const htmlContent = `<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8"><title>${data.nomeCavidade || 'Relatório'}</title><style>body{font-family:Arial,sans-serif;}</style></head><body><p>${fullText}</p></body></html>`;
         
-        downloadFile(`${cavidadeNomeSanitized}_texto.html`, htmlContent, 'text/html;charset=utf-8;');
+        return htmlContent;
     };
 
-    const generateCsvFiles = () => {
+    // --- GERAÇÃO DOS ARQUIVOS CSV ---
+    const generateCsvFilesContent = () => {
         let allDataTemp = {};
         const orderedKeys = [
             'Data', 'Horário', 'Projeto/Localidade', 'Nome da cavidade', 'Estação', 'Clima', 'Equipe', 'Coordenadas',
@@ -894,9 +887,7 @@ document.getElementById('exportButton').addEventListener('click', function() {
             }
         });
         
-        if(principalHeaders.length > 0){
-            downloadFile(`${baseFilename}_principal.csv`, `\uFEFF${principalHeaders.join(';')}\n${principalValues.join(';')}`, 'text/csv;charset=utf-8;');
-        }
+        const principalCsvContent = (principalHeaders.length > 0) ? `\uFEFF${principalHeaders.join(';')}\n${principalValues.join(';')}` : null;
         
         let taxonRows = [];
         const clean = val => `"${String(val).toLowerCase().replace(/"/g, '""')}"`;
@@ -921,15 +912,30 @@ document.getElementById('exportButton').addEventListener('click', function() {
             }
         });
 
-        if (taxonRows.length > 0) {
-            const taxonHeader = 'Data;Horário;Projeto/Localidade;Nome da cavidade;Estação;Grupo;Táxon;Quantidade_V;Quantidade_C';
-            const taxonCsvContent = `\uFEFF${taxonHeader}\n${taxonRows.join('\n')}`;
-            downloadFile(`${baseFilename}_taxons.csv`, taxonCsvContent, 'text/csv;charset=utf-8;');
-        }
+        const taxonCsvContent = (taxonRows.length > 0) ? `\uFEFF${'Data;Horário;Projeto/Localidade;Nome da cavidade;Estação;Grupo;Táxon;Quantidade_V;Quantidade_C'}\n${taxonRows.join('\n')}` : null;
+
+        return { principalCsvContent, taxonCsvContent };
     };
 
-    generateCsvFiles();
-    generateTextFile();
+    const csvContents = generateCsvFilesContent();
+    if (csvContents.principalCsvContent) {
+        zip.file(`${baseFilename}_principal.csv`, csvContents.principalCsvContent);
+    }
+    if (csvContents.taxonCsvContent) {
+        zip.file(`${baseFilename}_taxons.csv`, csvContents.taxonCsvContent);
+    }
+    
+    zip.file(`${cavidadeNomeSanitized}_texto.html`, generateTextFileContent());
+
+    capturedPhotos.forEach(photo => {
+        zip.file(photo.name, photo.blob);
+    });
+
+    zip.generateAsync({ type: "blob" }).then(function(content) {
+        downloadFile(`${cavidadeNomeSanitized}.zip`, content, 'application/zip');
+        capturedPhotos = [];
+        document.getElementById('photo-previews').innerHTML = '';
+    });
 });
 
 
