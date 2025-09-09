@@ -42,7 +42,7 @@
             height: 100vh;
             align-self: flex-start;
         }
-        .tab-container-vertical button {
+        .tab-container-vertical button:not(.fab) {
             background-color: inherit;
             border: none;
             outline: none;
@@ -56,54 +56,53 @@
             border-left: 4px solid transparent;
             width: 100%;
         }
-        .tab-container-vertical button:hover { background-color: #ddd; }
+        .tab-container-vertical button:not(.fab):hover { background-color: #ddd; }
         .tab-container-vertical button.active {
             background-color: #ccc;
             border-left: 4px solid #4CAF50;
         }
-        .action-btn {
-            writing-mode: vertical-lr;
-            transform: rotate(180deg);
-            text-align: center;
-            border-left: 4px solid transparent;
-            padding: 15px 10px !important;
-            margin-top: auto; /* Empurra o botão para o final */
-        }
-
-        #take-photo-btn {
-            background-color: #007bff; /* Azul */
-            color: white;
-        }
-        #take-photo-btn:hover {
-            background-color: #0056b3; /* Um azul mais escuro para o hover */
-        }
         
-        #exportButton {
+        .fab {
             position: fixed;
-            bottom: 80px; /* Posição acima da barra de navegação */
             right: 20px;
             z-index: 1000;
-            
-            background-color: #4CAF50;
-            color: white;
-            
             width: 60px;
             height: 60px;
-            border-radius: 50%; /* Formato circular */
+            border-radius: 50%;
             border: none;
-            
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            
             font-size: 14px;
             font-weight: bold;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             cursor: pointer;
             transition: background-color 0.3s;
         }
+
+        #take-photo-btn {
+            background-color: #007bff; /* Azul */
+            bottom: 150px; /* Posição acima do botão Salvar */
+        }
+        #take-photo-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        #exportButton {
+            background-color: #4CAF50; /* Verde */
+            bottom: 80px; /* Posição acima da barra de navegação */
+        }
         #exportButton:hover {
              background-color: #45a049;
+        }
+
+        #clearButton {
+            background-color: #dc3545; /* Vermelho */
+            color: white;
+        }
+        #clearButton:hover {
+            background-color: #c82333;
         }
 
         .tab-content-wrapper {
@@ -254,15 +253,14 @@
 <div class="main-layout">
     
     <div class="tab-container-vertical">
+        <button id="clearButton" style="writing-mode: vertical-lr; transform: rotate(180deg); text-align: center; border-left: 4px solid transparent; margin-bottom: 20px; padding: 15px 10px !important;">Limpar Ficha</button>
         <button class="tab-link active" onclick="openTab(event, 'tabDadosGerais')">Dados Gerais</button>
         <button class="tab-link" onclick="openTab(event, 'tabCaracteristicas')">Gerais Características</button>
-        <button class="tab-link" onclick="openTab(event, 'tabTaxons')">Táxons</button>
         <button class="tab-link" onclick="openTab(event, 'tabRecursos')">Recursos</button>
         <button class="tab-link" onclick="openTab(event, 'tabGuano')">Guano</button>
+        <button class="tab-link" onclick="openTab(event, 'tabTaxons')">Táxons</button>
         <button class="tab-link" onclick="openTab(event, 'tabAporte')">Caract. Outras</button>
         <button class="tab-link" onclick="openTab(event, 'tabObservacoes')">Observações</button>
-        
-        <button type="button" id="take-photo-btn" class="action-btn">Fotos</button>
     </div>
 
     <div class="tab-content-wrapper">
@@ -342,43 +340,9 @@
                         <div class="form-group">
                             <label>Zonação (%)</label>
                             <div class="options-group" style="flex-direction: column; gap: 10px; align-items: flex-start;">
-                                <div class="option-item"><label for="zonacao_eufotica">Aufótica</label><input type="number" id="zonacao_eufotica" name="zonacao_eufotica" style="width: 80px;"></div>
+                                <div class="option-item"><label for="zonacao_eufotica">Eufótica</label><input type="number" id="zonacao_eufotica" name="zonacao_eufotica" style="width: 80px;"></div>
                                 <div class="option-item"><label for="zonacao_disfotica">Disfótica</label><input type="number" id="zonacao_disfotica" name="zonacao_disfotica" style="width: 80px;"></div>
                                 <div class="option-item"><label for="zonacao_afotica">Afótica</label><input type="number" id="zonacao_afotica" name="zonacao_afotica" style="width: 80px;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="tabTaxons" class="tab-content">
-                    <button type="button" class="accordion">Invertebrados</button>
-                    <div class="panel">
-                        <div id="invertebrados-container"></div>
-                        <button type="button" class="add-row-btn" onclick="addInvertebradoRow('invertebrados-container')">+</button>
-                    </div>
-
-                    <button type="button" class="accordion">Vertebrados</button>
-                    <div class="panel">
-                        <div id="vertebrados-container"></div>
-                        <button type="button" class="add-row-btn" onclick="addVertebradoRow('vertebrados-container')">+</button>
-                    </div>
-
-                    <button type="button" class="accordion">Material Coletado</button>
-                    <div class="panel">
-                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
-                            <label for="eppendorf" style="margin-bottom: 0; flex-grow: 1;">Eppendorf</label>
-                            <div class="quantity-stepper">
-                                <button type="button" onclick="changeQuantity(this, -1)">-</button>
-                                <input type="number" id="eppendorf" name="eppendorf" value="0" min="0">
-                                <button type="button" onclick="changeQuantity(this, 1)">+</button>
-                            </div>
-                        </div>
-                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
-                            <label for="falcon" style="margin-bottom: 0; flex-grow: 1;">Falcon</label>
-                            <div class="quantity-stepper">
-                                <button type="button" onclick="changeQuantity(this, -1)">-</button>
-                                <input type="number" id="falcon" name="falcon" value="0" min="0">
-                                <button type="button" onclick="changeQuantity(this, 1)">+</button>
                             </div>
                         </div>
                     </div>
@@ -439,25 +403,59 @@
                             <div class="guano-header">Antigo</div>
                             <div class="guano-header">Exaurido</div>
 
-                            <div class="guano-label">Frugívoro</div>
+                            <div class="guano-label">Frugívoros</div>
                             <div class="guano-cell"><input type="checkbox" name="guano_frugivoro_estado" value="recente"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_frugivoro_estado" value="antigo"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_frugivoro_estado" value="exaurido"></div>
 
-                            <div class="guano-label">Hematófago</div>
+                            <div class="guano-label">Hematófagos</div>
                             <div class="guano-cell"><input type="checkbox" name="guano_hematofago_estado" value="recente"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_hematofago_estado" value="antigo"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_hematofago_estado" value="exaurido"></div>
 
-                            <div class="guano-label">Insetívoro</div>
+                            <div class="guano-label">Insetívoros</div>
                             <div class="guano-cell"><input type="checkbox" name="guano_insetivoro_estado" value="recente"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_insetivoro_estado" value="antigo"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_insetivoro_estado" value="exaurido"></div>
 
-                            <div class="guano-label">Nectarívoro</div>
+                            <div class="guano-label">Nectarívoros</div>
                             <div class="guano-cell"><input type="checkbox" name="guano_nectarivoro_estado" value="recente"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_nectarivoro_estado" value="antigo"></div>
                             <div class="guano-cell"><input type="checkbox" name="guano_nectarivoro_estado" value="exaurido"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tabTaxons" class="tab-content">
+                    <button type="button" class="accordion">Invertebrados</button>
+                    <div class="panel">
+                        <div id="invertebrados-container"></div>
+                        <button type="button" class="add-row-btn" onclick="addInvertebradoRow('invertebrados-container')">+</button>
+                    </div>
+
+                    <button type="button" class="accordion">Vertebrados</button>
+                    <div class="panel">
+                        <div id="vertebrados-container"></div>
+                        <button type="button" class="add-row-btn" onclick="addVertebradoRow('vertebrados-container')">+</button>
+                    </div>
+
+                    <button type="button" class="accordion">Material Coletado</button>
+                    <div class="panel">
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                            <label for="eppendorf" style="margin-bottom: 0; flex-grow: 1;">Eppendorf</label>
+                            <div class="quantity-stepper">
+                                <button type="button" onclick="changeQuantity(this, -1)">-</button>
+                                <input type="number" id="eppendorf" name="eppendorf" value="0" min="0">
+                                <button type="button" onclick="changeQuantity(this, 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                            <label for="falcon" style="margin-bottom: 0; flex-grow: 1;">Falcon</label>
+                            <div class="quantity-stepper">
+                                <button type="button" onclick="changeQuantity(this, -1)">-</button>
+                                <input type="number" id="falcon" name="falcon" value="0" min="0">
+                                <button type="button" onclick="changeQuantity(this, 1)">+</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -513,7 +511,8 @@
     </div>
 </div>
 
-<button type="button" id="exportButton">Salvar</button>
+<button type="button" id="take-photo-btn" class="fab">Fotos</button>
+<button type="button" id="exportButton" class="fab">Salvar</button>
 
 <script>
 // --- LÓGICA DAS ABAS E NAVEGAÇÃO ---
@@ -673,7 +672,11 @@ let capturedPhotos = [];
 function getGPS() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
-            document.getElementById('coordenadas').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            let coords = `${pos.coords.latitude}, ${pos.coords.longitude}`;
+            if (pos.coords.altitude) {
+                coords += `, ${pos.coords.altitude.toFixed(2)}m`;
+            }
+            document.getElementById('coordenadas').value = coords;
         }, err => alert(`Erro ao obter GPS: ${err.message}`));
     } else {
         alert('Geolocalização não é suportada por este navegador.');
@@ -739,7 +742,6 @@ document.getElementById('exportButton').addEventListener('click', async function
     const baseFilename = `${cavidadeNomeSanitized}`;
     const zip = new JSZip();
 
-    // --- GERAÇÃO DO ARQUIVO DE TEXTO (.HTML) ---
     const generateTextFileContent = () => {
         const getValue = (id) => document.getElementById(id)?.value || '';
         const getSelectedText = (id) => {
@@ -761,7 +763,7 @@ document.getElementById('exportButton').addEventListener('click', async function
             umidade: getSelectedText('umidade'),
             hidrologia: getCheckboxValues('hidrologia-group'),
             zonacao: {
-                aufotica: getValue('zonacao_eufotica'),
+                eufotica: getValue('zonacao_eufotica'),
                 disfotica: getValue('zonacao_disfotica'),
                 afotica: getValue('zonacao_afotica')
             },
@@ -772,9 +774,9 @@ document.getElementById('exportButton').addEventListener('click', async function
             aporte: getCheckboxValues('agentes-transportadores-group'),
             alteracoes: []
         };
-        const guanoTypes = ['frugivoro', 'hematofago', 'insetivoro', 'nectarivoro'];
+        const guanoTypes = ['frugivoros', 'hematofagos', 'insetivoros', 'nectarivoros'];
         guanoTypes.forEach(type => {
-            const states = Array.from(document.querySelectorAll(`input[name="guano_${type}_estado"]:checked`)).map(cb => cb.value);
+            const states = Array.from(document.querySelectorAll(`input[name="guano_${type.slice(0,-1)}_estado"]:checked`)).map(cb => cb.value);
             if (states.length > 0) data.guano[type] = states;
         });
         if (getSelectedValue('pisoteio') === 'Presença') data.alteracoes.push('pisoteio');
@@ -799,17 +801,14 @@ document.getElementById('exportButton').addEventListener('click', async function
         let umidadeTxt = data.umidade === 'Presença' ? 'úmida' : (data.umidade === 'Ausência' ? 'seca' : vazio);
         let hidroTxt = (data.hidrologia.length === 0 || data.hidrologia.some(h => h.toLowerCase() === 'ausente')) ? 'não foram observados processos hidrológicos ativos' : `foram observados processos hidrológicos como ${formatList(data.hidrologia)}`;
         let s5_6 = `A cavidade se encontrava ${umidadeTxt} e ${hidroTxt}.`;
-
         let lumParts = [];
-        if(data.zonacao.aufotica) lumParts.push(`eufótica (${data.zonacao.aufotica}%)`);
+        if(data.zonacao.eufotica) lumParts.push(`eufótica (${data.zonacao.eufotica}%)`);
         if(data.zonacao.disfotica) lumParts.push(`penumbra (${data.zonacao.disfotica}%)`);
         if(data.zonacao.afotica) lumParts.push(`afótica (${data.zonacao.afotica}%)`);
         let s7 = `Quanto à luminosidade, a cavidade pode ser dividida nas zonações ${lumParts.length > 0 ? formatList(lumParts) : vazio}.`;
-        
         let recursosList = [...data.recursos];
         if (data.outrosRecursos) recursosList.push(data.outrosRecursos);
         let s8 = `Os recursos orgânicos são representados por ${formatList(recursosList)}.`;
-
         let s9 = '';
         if (data.guanoAusente || Object.keys(data.guano).length === 0) {
             s9 = `Guano: ${vazio}.`;
@@ -820,7 +819,6 @@ document.getElementById('exportButton').addEventListener('click', async function
             }
             s9 = `Há guano de morcegos ${formatList(guanoParts)}.`;
         }
-        
         let s10 = `A cavidade recebe recursos tróficos pela ação de ${formatList(data.aporte)}.`;
         let s11 = `Alterações antrópicas são representadas por ${formatList(data.alteracoes)}.`;
 
@@ -830,7 +828,6 @@ document.getElementById('exportButton').addEventListener('click', async function
         return htmlContent;
     };
 
-    // --- GERAÇÃO DOS ARQUIVOS CSV ---
     const generateCsvFilesContent = () => {
         let allDataTemp = {};
         const orderedKeys = [
@@ -839,7 +836,7 @@ document.getElementById('exportButton').addEventListener('click', async function
             'Inclinação predominante do piso', 'Sedimentos Clásticos', 'Umidade', 'Hidrologia', 'Luminosidade', 'Eppendorf', 'Falcon',
             'Pisoteio', 'Lixo', 'Poeira',
             'Recursos encontrados', 'Outros Recursos (Adicionar)',
-            'Guano', 'Guano Frugívoro', 'Guano Hematófago', 'Guano Insetívoro', 'Guano Nectarívoro',
+            'Guano', 'Guano Frugívoros', 'Guano Hematófagos', 'Guano Insetívoros', 'Guano Nectarívoros',
             'Agentes Transportadores',
             'Observações Gerais'
         ];
@@ -873,7 +870,7 @@ document.getElementById('exportButton').addEventListener('click', async function
                 const states = [];
                 document.querySelectorAll(`input[name="guano_${type}_estado"]:checked`).forEach(cb => states.push(cb.value));
                 if (states.length > 0) {
-                    allDataTemp[`Guano ${type.charAt(0).toUpperCase() + type.slice(1)}`] = states;
+                    allDataTemp[`Guano ${type.charAt(0).toUpperCase() + type.slice(1)}s`] = states;
                 }
             });
         }
