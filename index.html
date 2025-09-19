@@ -176,7 +176,7 @@
             text-align: center;
         }
         .impact-grid > div:first-child {
-            font-weight: normal; 
+            font-weight: normal;
             text-align: left;
         }
         .grid-header {
@@ -515,6 +515,113 @@
 <button type="button" id="exportButton" class="fab">Salvar</button>
 
 <script>
+// --- LÓGICA DE SALVAMENTO E RECUPERAÇÃO LOCAL (NOVA) ---
+
+// Função para salvar todos os dados do formulário no localStorage
+function saveDataToLocal() {
+    const form = document.getElementById('bioForm');
+    const data = {};
+
+    // Salva o valor de todos os inputs, selects e textareas
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.type === 'radio') {
+            if (el.checked) {
+                data[el.name] = el.value;
+            }
+        } else if (el.type === 'checkbox') {
+            if (!data[el.name]) {
+                data[el.name] = []; // Cria um array para checkboxes de mesmo nome
+            }
+            if (el.checked) {
+                data[el.name].push(el.value);
+            }
+        } else if (el.id) { // Usa o ID como chave para os demais campos
+            data[el.id] = el.value;
+        }
+    });
+
+    // Salva os dados das linhas de invertebrados dinâmicas
+    data.invertebrados = [];
+    document.querySelectorAll('#invertebrados-container .invertebrado-entry').forEach(row => {
+        const nome = row.querySelector('input[type="text"]').value;
+        const qtd_v = row.querySelector('.quantity-v').value;
+        const qtd_c = row.querySelector('.quantity-c').value;
+        if (nome || parseInt(qtd_v) > 0 || parseInt(qtd_c) > 0) {
+            data.invertebrados.push({ nome, qtd_v, qtd_c });
+        }
+    });
+
+    // Salva os dados das linhas de vertebrados dinâmicas
+    data.vertebrados = [];
+    document.querySelectorAll('#vertebrados-container .dynamic-row').forEach(row => {
+        const nome = row.querySelector('input[type="text"]').value;
+        const qtd = row.querySelector('.quantity-v').value;
+        if (nome || parseInt(qtd) > 0) {
+            data.vertebrados.push({ nome, qtd });
+        }
+    });
+
+    // Converte o objeto de dados para uma string JSON e salva no localStorage
+    localStorage.setItem('bioFormData', JSON.stringify(data));
+}
+
+// Função para carregar os dados do localStorage e preencher o formulário
+function loadDataFromLocal() {
+    const savedData = localStorage.getItem('bioFormData');
+    if (!savedData) return;
+
+    const data = JSON.parse(savedData);
+    const form = document.getElementById('bioForm');
+
+    // Preenche todos os inputs, selects e textareas
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.type === 'radio') {
+            if (data[el.name] === el.value) {
+                el.checked = true;
+                // Dispara o evento 'change' para atualizar campos condicionais (como a drenagem)
+                el.dispatchEvent(new Event('change'));
+            }
+        } else if (el.type === 'checkbox') {
+            if (data[el.name] && data[el.name].includes(el.value)) {
+                el.checked = true;
+            }
+        } else if (el.id && data[el.id] !== undefined) {
+            el.value = data[el.id];
+        }
+    });
+
+    // Recria as linhas de invertebrados
+    if (data.invertebrados && data.invertebrados.length > 0) {
+        const container = document.getElementById('invertebrados-container');
+        container.innerHTML = ''; // Limpa a linha padrão
+        data.invertebrados.forEach(item => {
+            addInvertebradoRow('invertebrados-container');
+            const newRow = container.lastElementChild;
+            newRow.querySelector('input[type="text"]').value = item.nome;
+            newRow.querySelector('.quantity-v').value = item.qtd_v;
+            newRow.querySelector('.quantity-c').value = item.qtd_c;
+        });
+    }
+
+    // Recria as linhas de vertebrados
+    if (data.vertebrados && data.vertebrados.length > 0) {
+        const container = document.getElementById('vertebrados-container');
+        container.innerHTML = ''; // Limpa a linha padrão
+        data.vertebrados.forEach(item => {
+            addVertebradoRow('vertebrados-container');
+            const newRow = container.lastElementChild;
+            newRow.querySelector('input[type="text"]').value = item.nome;
+            newRow.querySelector('.quantity-v').value = item.qtd;
+        });
+    }
+    
+    // Re-aplica a lógica de desabilitar checkboxes "ausentes"
+    document.querySelectorAll('input[type="checkbox"][value="Ausente"]:checked, input[name="guano_ausente"]:checked').forEach(ausenteCb => {
+        ausenteCb.dispatchEvent(new Event('change'));
+    });
+}
+
+
 // --- LÓGICA DAS ABAS E NAVEGAÇÃO ---
 const tabLinks = document.querySelectorAll(".tab-container-vertical .tab-link");
 const prevTabBtn = document.getElementById('prevTabBtn');
@@ -550,7 +657,6 @@ function openTab(evt, tabId) {
             panel.classList.remove('show');
         }
     });
-
     updateNavButtons();
 }
 
@@ -576,7 +682,6 @@ prevTabBtn.addEventListener('click', () => {
         tabLinks[currentIdx - 1].click();
     }
 });
-
 nextTabBtn.addEventListener('click', () => {
     let currentIdx = -1;
     tabLinks.forEach((link, idx) => {
@@ -588,8 +693,6 @@ nextTabBtn.addEventListener('click', () => {
         tabLinks[currentIdx + 1].click();
     }
 });
-
-
 // --- LÓGICA DO ACORDEÃO (SEM ANIMAÇÃO) ---
 document.querySelectorAll('.accordion').forEach(button => {
     button.addEventListener('click', () => {
@@ -610,8 +713,6 @@ document.querySelectorAll('.accordion').forEach(button => {
         panel.classList.toggle('show', !wasActive);
     });
 });
-
-
 // --- LÓGICA PARA CAMPO CONDICIONAL (DRENAGEM) ---
 function toggleDrenagem(show) {
     document.getElementById('drenagem_proximidade_group').style.display = show ? 'block' : 'none';
@@ -668,7 +769,6 @@ function changeQuantity(btn, amount) {
 
 // --- LÓGICA PARA GPS, FOTOS E EXPORTAÇÃO ---
 let capturedPhotos = [];
-
 function getGPS() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
@@ -708,14 +808,12 @@ document.getElementById('photo-input').addEventListener('change', function(event
         const filename = `${filenameBase}_(${photoCounter++}).jpg`;
         
         capturedPhotos.push({ name: filename, blob: file });
-
         const img = document.createElement('img');
         img.src = URL.createObjectURL(file);
         document.getElementById('photo-previews').appendChild(img);
     });
     event.target.value = '';
 });
-
 function downloadFile(filename, content, mimeType) {
     const blob = new Blob([content], { type: mimeType });
     const link = document.createElement("a");
@@ -791,7 +889,6 @@ document.getElementById('exportButton').addEventListener('click', async function
             if (processedItems.length === 2) return `${processedItems[0]} e ${processedItems[1]}`;
             return `${processedItems.slice(0, -1).join(', ')} e ${processedItems.slice(-1)}`;
         };
-
         let s1 = `A cavidade ${data.nomeCavidade || '[N/A]'} está localizada em área com declividade ${data.declividade || vazio} na ${data.posicaoVertente || '[N/A]'} vertente.`;
         let s2 = `A vegetação de entorno é composta por espécies de porte ${formatList(data.vegetacao)}`;
         if (data.drenagem === 'Presença' && data.distanciaDrenagem) {
@@ -827,7 +924,6 @@ document.getElementById('exportButton').addEventListener('click', async function
         
         return htmlContent;
     };
-
     const generateCsvFilesContent = () => {
         let allDataTemp = {};
         const orderedKeys = [
@@ -840,7 +936,6 @@ document.getElementById('exportButton').addEventListener('click', async function
             'Agentes Transportadores',
             'Observações Gerais'
         ];
-
         form.querySelectorAll('input[type="text"], input[type="date"], input[type="time"], input[type="tel"], input[type="number"], textarea, select').forEach(el => {
             let label = el.closest('.form-group')?.querySelector('label')?.innerText.replace(/:$/, '') || el.name || el.id;
             if (el.value && (el.type !== 'number' || el.value !== '0')) {
@@ -908,12 +1003,10 @@ document.getElementById('exportButton').addEventListener('click', async function
                 taxonRows.push([clean(data), clean(horario), clean(projeto), clean(cavidade), clean(estacao), 'Vertebrado', clean(nome), clean(qtd), ''].join(';'));
             }
         });
-
         const taxonCsvContent = (taxonRows.length > 0) ? `\uFEFF${'Data;Horário;Projeto/Localidade;Nome da cavidade;Estação;Grupo;Táxon;Quantidade_V;Quantidade_C'}\n${taxonRows.join('\n')}` : null;
 
         return { principalCsvContent, taxonCsvContent };
     };
-
     const csvContents = generateCsvFilesContent();
     if (csvContents.principalCsvContent) {
         zip.file(`${baseFilename}_principal.csv`, csvContents.principalCsvContent);
@@ -923,25 +1016,62 @@ document.getElementById('exportButton').addEventListener('click', async function
     }
     
     zip.file(`${cavidadeNomeSanitized}_texto.html`, generateTextFileContent());
-
     capturedPhotos.forEach(photo => {
         zip.file(photo.name, photo.blob);
     });
-
     zip.generateAsync({ type: "blob" }).then(function(content) {
         downloadFile(`${cavidadeNomeSanitized}.zip`, content, 'application/zip');
+        // Limpa os dados locais após salvar com sucesso
+        localStorage.removeItem('bioFormData');
         capturedPhotos = [];
         document.getElementById('photo-previews').innerHTML = '';
     });
 });
 
+// --- LÓGICA PARA LIMPAR O FORMULÁRIO (ATUALIZADA) ---
+document.getElementById('clearButton').addEventListener('click', function() {
+    if (confirm('Tem certeza de que deseja limpar todos os dados da ficha? Esta ação não pode ser desfeita.')) {
+        document.getElementById('bioForm').reset();
+        document.getElementById('photo-previews').innerHTML = '';
+        capturedPhotos = [];
+        
+        // Limpa os dados salvos no navegador
+        localStorage.removeItem('bioFormData');
+        
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.disabled = false;
+        });
 
-// --- LÓGICAS DE INTERAÇÃO ---
+        document.getElementById('invertebrados-container').innerHTML = '';
+        document.getElementById('vertebrados-container').innerHTML = '';
+        addInvertebradoRow('invertebrados-container');
+        addVertebradoRow('vertebrados-container');
+        
+        toggleDrenagem(false);
+        openTab(null, 'tabDadosGerais');
+        updateNavButtons();
+        alert('Ficha limpa com sucesso!');
+    }
+});
+
+
+// --- LÓGICAS DE INICIALIZAÇÃO E INTERAÇÃO ---
 document.addEventListener('DOMContentLoaded', (event) => {
+    // Carrega os dados salvos assim que a página é aberta
+    loadDataFromLocal();
+
     openTab(null, 'tabDadosGerais'); 
-    addInvertebradoRow('invertebrados-container');
-    addVertebradoRow('vertebrados-container');
+    // Garante que haja pelo menos uma linha se não houver dados salvos
+    if (document.getElementById('invertebrados-container').children.length === 0) {
+        addInvertebradoRow('invertebrados-container');
+    }
+    if (document.getElementById('vertebrados-container').children.length === 0) {
+        addVertebradoRow('vertebrados-container');
+    }
     updateNavButtons();
+
+    // Salva os dados automaticamente em qualquer alteração
+    document.getElementById('bioForm').addEventListener('input', saveDataToLocal);
 
     function setupExclusiveAusenteCheckbox(groupId, ausenteValue) {
         const group = document.getElementById(groupId);
@@ -986,7 +1116,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const guanoGrid = document.getElementById('guano-grid');
     const guanoAusente = guanoGrid.querySelector('input[name="guano_ausente"]');
     const otherGuanoCheckboxes = guanoGrid.querySelectorAll('.guano-grid input[type="checkbox"]');
-
     guanoAusente.addEventListener('change', (e) => {
         if (e.target.checked) {
             otherGuanoCheckboxes.forEach(cb => {
@@ -999,7 +1128,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
             });
         }
     });
-
     otherGuanoCheckboxes.forEach(cb => {
         cb.addEventListener('change', (e) => {
             if (e.target.checked) {
